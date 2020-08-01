@@ -1,5 +1,5 @@
 """
-File for classes that handles the file headers
+File for classes that handles the class headers in
 the application. Here is the the place where the actual reading,
 parsing and validation of the files happens.
 """
@@ -14,19 +14,19 @@ from .utils import (
     BlankFormatter,
     get_indent,
     add_start_end,
-    is_one_line_method, ##TODO remove; unneeded for file-level documentation
+    is_one_line_method,
 )
 from .base import Builder
 import os
 
 
-class TopBuilder(Builder):
+class ClassBuilder(Builder):
     already_printed_filepaths = []
 
     def extract_and_set_information(self, filename, start, line, length):
         """
         This is a main abstract method tin the builder base
-        to add result into details. Used in Top Builder to
+        to add result into details. Used in Class Builder to
         pull the candidates that are subject to docstrings
         Parameters
         ----------
@@ -40,10 +40,10 @@ class TopBuilder(Builder):
         start_leading_space = get_leading_whitespace(
             start_line
         )  # Where function started
-        top_string = start_line
+        class_string = start_line
         if not is_one_line_method(start_line, self.config.get("keywords")):
-            top_string = line
-            linesBackwards = top_string.count("\n") - 1
+            class_string = line
+            linesBackwards = class_string.count("\n") - 1
             start_leading_space = get_leading_whitespace(
                 linecache.getline(filename, start - linesBackwards)
             )
@@ -57,7 +57,7 @@ class TopBuilder(Builder):
             if len(current_leading_space) <= len(start_leading_space) and line.strip():
                 end = lineno - 1
                 break
-            top_string += line
+            class_string += line
             lineno = lineno + 1
             line = linecache.getline(filename, int(lineno))
             end_of_file = True if lineno > length else False
@@ -66,8 +66,8 @@ class TopBuilder(Builder):
             end = length
 
         linecache.clearcache()
-        return TopInterface(
-            plain=top_string,
+        return ClassInterface(
+            plain=class_string,
             name=self._get_name(initial_line),
             start=start,
             end=end,
@@ -79,8 +79,8 @@ class TopBuilder(Builder):
         )
 
 
-class TopFormatter:
-    formatted_string = "{open}{break_after_open}{top_docstring}{break_after_docstring}{break_before_close}{close}"
+class ClassFormatter:
+    formatted_string = "{open}{break_after_open}{class_docstring}{break_after_docstring}{break_before_close}{close}"
     fmt = BlankFormatter()
 
     def format(self):
@@ -90,7 +90,7 @@ class TopFormatter:
         """
         self.pre()
         self.build_docstrings()
-        self.result = self.fmt.format(self.formatted_string, **self.method_format)
+        self.result = self.fmt.format(self.formatted_string, **self.class_format)
         self.add_indentation()
         self.polish()
 
@@ -110,46 +110,48 @@ class TopFormatter:
     def pre(self):
         """
         In the formatter, this method sets up the object that
-        will be used in a formatted way,. Also translates configs
+        will be used in a formatted way. Also translates configs
         into consumable values
+
+        TODO could this be moved to base class?
         """
-        top_format = copy.deepcopy(self.config)
-        top_format["indent"] = (
-            get_indent(top_format["indent"]) if top_format["indent"] else "    "
+        class_format = copy.deepcopy(self.config)
+        class_format["indent"] = (
+            get_indent(class_format["indent"]) if class_format["indent"] else "    "
         )
-        top_format["indent_content"] = (
-            get_indent(top_format["indent"])
-            if get_indent(top_format["indent_content"])
+        class_format["indent_content"] = (
+            get_indent(class_format["indent"])
+            if get_indent(class_format["indent_content"])
             else ""
         )
-        top_format["break_after_open"] = (
-            "\n" if top_format["break_after_open"] else ""
+        class_format["break_after_open"] = (
+            "\n" if class_format["break_after_open"] else ""
         )
-        top_format["break_after_docstring"] = (
-            "\n" if top_format["break_after_docstring"] else ""
+        class_format["break_after_docstring"] = (
+            "\n" if class_format["break_after_docstring"] else ""
         )
-        top_format["break_before_close"] = (
-            "\n" if top_format["break_before_close"] else ""
+        class_format["break_before_close"] = (
+            "\n" if class_format["break_before_close"] else ""
         )
-        top_format["empty_line"] = "\n"
+        class_format["empty_line"] = "\n"
 
-        self.top_format = top_format
+        self.class_format = class_format
 
     def build_docstring(self):
         """
-        Mainly adds docstrings of the file after cleaning up text
+        Mainly adds docstrings of the class after cleaning up text
         into reasonable chunks
         """
-        text = self.top_docstring or "Missing Docstring!"
-        self.top_format["top_docstring"] = self.wrap_strings(text.split(" "))
+        text = self.class_docstring or "Missing Docstring!"
+        self.class_format["class_docstring"] = self.wrap_strings(text.split(" "))
 
     def add_indentation(self):
         """
         Translates indent params to actual indents
         """
         temp = self.result.split("\n")
-        space = self.top_format.get("indent")
-        indent_content = self.top_format.get("indent_content")
+        space = self.class_format.get("indent")
+        indent_content = self.class_format.get("indent_content")
         if indent_content:
             content = temp[1:-1]
             content = [indent_content + docline for docline in temp][1:-1]
@@ -165,21 +167,21 @@ class TopFormatter:
         str polished: complete polished string before popping up
         """
         polished = add_start_end(polished)
-        top_split = self.plain.split("\n")
+        class_split = self.plain.split("\n")
         if self.config.get("within_scope"):
             # Check if method comes in an unusual format
             keywords = self.config.get("keywords")
-            firstLine = top_split[0]
+            firstLine = class_split[0]
             pos = 1
             while not is_one_line_method(firstLine, keywords):
-                firstLine += top_split[pos]
+                firstLine += class_split[pos]
                 pos += 1
-            top_split.insert(pos, polished)
+            class_split.insert(pos, polished)
         else:
-            top_split.insert(0, polished)
+            class_split.insert(0, polished)
 
         try:
-            result = "\n".join(top_split)
+            result = "\n".join(class_split)
             message = click.edit(
                 "## CONFIRM: MODIFY DOCSTRING BETWEEN START AND END LINES ONLY\n\n"
                 + result
@@ -216,7 +218,7 @@ class TopFormatter:
             self.confirm(polished)
 
 
-class TopInterface(TopFormatter):
+class ClassInterface(ClassFormatter):
     def __init__(
         self,
         plain,
@@ -235,28 +237,27 @@ class TopInterface(TopFormatter):
         self.end = end
         self.filename = filename
         self.arguments = arguments
-        self.top_docstring = ""
+        self.class_docstring = ""
         self.config = config
         self.leading_space = leading_space
         self.placeholders = placeholders
 
     def prompt(self):
         """
-        Wrapper method for prompts and calls for prompting
-        file then formats them
+        Wrapper method for prompts and calls for prompting classes then formats them
         """
         self._prompt_docstring()
         self.format()
 
     def _prompt_docstring(self):
         """
-        Simple prompt for a file's docstring
+        Simple prompt for a class's docstring
         """
         if self.placeholders:
-            self.top_docstring = "<docstring>"
+            self.class_docstring = "<docstring>"
         else:
             echo_name = click.style(self.name, fg="green")
-            self.top_docstring = click.prompt(
-                "\n({}) Top docstring ".format(echo_name)
+            self.class_docstring = click.prompt(
+                "\n({}) Class docstring ".format(echo_name)
             )
         pass
