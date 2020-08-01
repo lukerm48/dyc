@@ -19,6 +19,7 @@ from .utils import (
 from .base import Builder
 import os
 
+
 class TopBuilder(Builder):
     already_printed_filepaths = []
 
@@ -77,51 +78,145 @@ class TopBuilder(Builder):
             placeholders=self.placeholders,
         )
 
+
 class TopFormatter:
-    """
-    TODO
-    """
-    formatted_string = "{open}{break_after_open}{method_docstring}{break_after_docstring}{empty_line}{argument_format}{break_before_close}{close}"
+    formatted_string = "{open}{break_after_open}{top_docstring}{break_after_docstring}{break_before_close}{close}"
     fmt = BlankFormatter()
 
     def format(self):
         """
-        TODO
         Public formatting method that executes a pattern of methods to
         complete the process
         """
         self.pre()
         self.build_docstrings()
-        self.build_arguments()
         self.result = self.fmt.format(self.formatted_string, **self.method_format)
         self.add_indentation()
         self.polish()
 
     def wrap_strings(self, words):
-        pass
+        """
+        Compact how many words should be in a line
+        Parameters
+        ----------
+        str words: docstring given
+        """
+        subs = []
+        n = self.config.get("words_per_line")
+        for i in range(0, len(words), n):
+            subs.append(" ".join(words[i : i + n]))
+        return "\n".join(subs)
 
     def pre(self):
-        pass
+        """
+        In the formatter, this method sets up the object that
+        will be used in a formatted way,. Also translates configs
+        into consumable values
+        """
+        top_format = copy.deepcopy(self.config)
+        top_format["indent"] = (
+            get_indent(top_format["indent"]) if top_format["indent"] else "    "
+        )
+        top_format["indent_content"] = (
+            get_indent(top_format["indent"])
+            if get_indent(top_format["indent_content"])
+            else ""
+        )
+        top_format["break_after_open"] = (
+            "\n" if top_format["break_after_open"] else ""
+        )
+        top_format["break_after_docstring"] = (
+            "\n" if top_format["break_after_docstring"] else ""
+        )
+        top_format["break_before_close"] = (
+            "\n" if top_format["break_before_close"] else ""
+        )
+        top_format["empty_line"] = "\n"
+
+        self.top_format = top_format
 
     def build_docstring(self):
-        pass
-
-    def build_arguments(self):
-        pass
+        """
+        Mainly adds docstrings of the method after cleaning up text
+        into reasonable chunks
+        """
+        text = self.top_docstring or "Missing Docstring!"
+        self.top_format["top_docstring"] = self.wrap_strings(text.split(" "))
 
     def add_indentation(self):
-        pass
+        """
+        Translates indent params to actual indents
+        """
+        temp = self.result.split("\n")
+        space = self.method_format.get("indent")
+        indent_content = self.method_format.get("indent_content")
+        if indent_content:
+            content = temp[1:-1]
+            content = [indent_content + docline for docline in temp][1:-1]
+            temp[1:-1] = content
+        self.result = "\n".join([space + docline for docline in temp])
 
     def confirm(self, polished):
-        pass
+        """
+        Pop up editor function to finally confirm if the documented
+        format is accepted
+        Parameters
+        ----------
+        str polished: complete polished string before popping up
+        """
+        polished = add_start_end(polished)
+        top_split = self.plain.split("\n")
+        if self.config.get("within_scope"):
+            # Check if method comes in an unusual format
+            keywords = self.config.get("keywords")
+            firstLine = top_split[0]
+            pos = 1
+            while not is_one_line_method(firstLine, keywords):
+                firstLine += top_split[pos]
+                pos += 1
+            top_split.insert(pos, polished)
+        else:
+            top_split.insert(0, polished)
+
+        try:
+            result = "\n".join(top_split)
+            message = click.edit(
+                "## CONFIRM: MODIFY DOCSTRING BETWEEN START AND END LINES ONLY\n\n"
+                + result
+            )
+            message = "\n".join(message.split("\n")[2:])
+        except:
+            print("Quitting the program in the editor terminates the process. Thanks")
+            sys.exit()
+
+        final = []
+        start = False
+        end = False
+
+        for x in message.split("\n"):
+            stripped = x.strip()
+            if stripped == "## END":
+                end = True
+            if start and not end:
+                final.append(x)
+            if stripped == "## START":
+                start = True
+
+        self.result = "\n".join(final)
 
     def polish(self):
-        pass
+        """
+        Editor wrapper to confirm result
+        """
+        docstring = self.result.split("\n")
+        polished = "\n".join([self.leading_space + docline for docline in docstring])
+        if self.placeholders:
+            self.result = polished
+        else:
+            self.confirm(polished)
+
 
 class TopInterface(TopFormatter):
-    """
-    TODO
-    """
     def __init__(
         self,
         plain,
@@ -140,8 +235,7 @@ class TopInterface(TopFormatter):
         self.end = end
         self.filename = filename
         self.arguments = arguments
-        self.method_docstring = ""
-        self.arg_docstring = []
+        self.top_docstring = ""
         self.config = config
         self.leading_space = leading_space
         self.placeholders = placeholders
@@ -152,24 +246,17 @@ class TopInterface(TopFormatter):
         methods then formats them
         """
         self._prompt_docstring()
-        self._prompt_args()
         self.format()
 
     def _prompt_docstring(self):
         """
-        TODO
+        Simple prompt for a method's docstring
         """
-        pass
-
-    def _prompt_args(self):
-        """
-        TODO
-        """
-
-        def _echo_arg_style(argument):
-            """
-            TODO
-            """
-            pass
-
+        if self.placeholders:
+            self.top_docstring = "<docstring>"
+        else:
+            echo_name = click.style(self.name, fg="green")
+            self.top_docstring = click.prompt(
+                "\n({}) Top docstring ".format(echo_name)
+            )
         pass
