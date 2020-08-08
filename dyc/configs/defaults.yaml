@@ -12,19 +12,21 @@ formats:
     method:
       ignore:
         - __init__
-      keywords: ['def']
+      method_indicator: 'def'
+      method_end: ':'
+      regex: = false
       enabled: true
       indent: '4 spaces'
       indent_content: false
-      open: '"""'
-      close: '"""'
+      doc_open: '"""'
+      doc_close: '"""'
       comments:
         - '#'
       break_after_open: true
       break_after_docstring: true
       break_before_close: true
       words_per_line: 10
-      within_scope: true
+      before_method: true
     arguments:
       title: 'Parameters'
       underline: true
@@ -34,5 +36,9 @@ formats:
       ignore:
         - cls
         - self
+      start_parameter: '('
+      end_parameter: ')'
+      parameter_split: ','
+      regex: false
     class:
-      keywords: ['class']
+      start_indicator: 'class'

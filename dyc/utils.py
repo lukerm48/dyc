@@ -20,7 +20,7 @@ def get_leading_whitespace(s):
     """
     accumulator = []
     for c in s:
-        if c in " \t\v\f\r\n":
+        if c in " \t\v\f": #not including \r\n
             accumulator.append(c)
         else:
             break
@@ -113,7 +113,6 @@ def add_start_end(string):
     leading_space = get_leading_whitespace(string)
     start = "{}## START\n".format(leading_space)
     end = "\n{}## END".format(leading_space)
-    string.split("\n")
     result = start + string + end
     return result
 
