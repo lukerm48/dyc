@@ -7,9 +7,9 @@ is constructed here. It performs all the readings
 """
 import click
 from .utils import get_extension
-from .methods import MethodBuilder
-from .classes import ClassBuilder
-from .top import TopBuilder
+from .methods.MethodBuilder import MethodBuilder
+from .classes.ClassBuilder import ClassBuilder
+from .top.TopBuilder import TopBuilder
 from .base import Processor
 
 class DYC(Processor):
@@ -79,7 +79,6 @@ class DYC(Processor):
             builder.prompts()
             builder.apply()
             builder.clear(filename)
-
 
     def process_top(self, diff_only=False, changes=[]):
         """

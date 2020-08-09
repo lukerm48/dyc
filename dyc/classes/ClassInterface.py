@@ -1,6 +1,7 @@
 from .ClassFormatter import ClassFormatter
 import click
 
+
 class ClassInterface(ClassFormatter):
     def __init__(
         self,
@@ -44,4 +45,3 @@ class ClassInterface(ClassFormatter):
             self.class_docstring = click.prompt(
                 "\n({}) Class docstring ".format(echo_name)
             )
-
