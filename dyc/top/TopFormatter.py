@@ -1,25 +1,30 @@
+"""
+File for classes that handles the file headers
+the application. Here is the the place where the actual reading,
+parsing and validation of the files happens.
+"""
+import sys
+import copy
+import click
 from ..utils import (
     BlankFormatter,
+    get_indent,
     add_start_end,
-    convert_indent,
 )
-import copy
-import sys
-import click
 
 
-class ClassFormatter:
-    formatted_string = "{doc_open}\n{break_after_open}{class_docstring}{break_after_docstring}{empty_line}{break_before_close}\n{doc_close}"
+class TopFormatter:
+    formatted_string = "{open}{break_after_open}{top_docstring}{break_after_docstring}{break_before_close}{close}"
     fmt = BlankFormatter()
 
     def format(self):
         """
-        Public formatting method that executes a pattern of classs to
+        Public formatting method that executes a pattern of methods to
         complete the process
         """
         self.pre()
         self.build_docstrings()
-        self.result = self.fmt.format(self.formatted_string, **self.class_format)
+        self.result = self.fmt.format(self.formatted_string, **self.method_format)
         self.add_indentation()
         self.polish()
 
@@ -42,48 +47,48 @@ class ClassFormatter:
         will be used in a formatted way,. Also translates configs
         into consumable values
         """
-        class_format = copy.deepcopy(self.config)
-        class_format["indent"] = (
-            convert_indent(class_format["indent"]) if class_format["indent"] else "    "
+        top_format = copy.deepcopy(self.config)
+        top_format["indent"] = (
+            get_indent(top_format["indent"]) if top_format["indent"] else "    "
         )
-        class_format["indent_content"] = (
-            convert_indent(class_format["indent"])
-            if class_format["indent_content"]
+        top_format["indent_content"] = (
+            get_indent(top_format["indent"])
+            if get_indent(top_format["indent_content"])
             else ""
         )
-        class_format["break_after_open"] = (
-            "\n" if class_format["break_after_open"] else ""
+        top_format["break_after_open"] = (
+            "\n" if top_format["break_after_open"] else ""
         )
-        class_format["break_after_docstring"] = (
-            "\n" if class_format["break_after_docstring"] else ""
+        top_format["break_after_docstring"] = (
+            "\n" if top_format["break_after_docstring"] else ""
         )
-        class_format["break_before_close"] = (
-            "\n" if class_format["break_before_close"] else ""
+        top_format["break_before_close"] = (
+            "\n" if top_format["break_before_close"] else ""
         )
-        class_format["empty_line"] = "\n"
+        top_format["empty_line"] = "\n"
 
-        self.class_format = class_format
+        self.top_format = top_format
 
-    def build_docstrings(self):
+    def build_docstring(self):
         """
-        Mainly adds docstrings of the class after cleaning up text
+        Mainly adds docstrings of the file after cleaning up text
         into reasonable chunks
         """
-        text = self.class_docstring or "Missing Docstring!"
-        self.class_format["class_docstring"] = self.wrap_strings(text.split(" "))
+        text = self.top_docstring or "Missing Docstring!"
+        self.top_format["top_docstring"] = self.wrap_strings(text.split(" "))
 
     def add_indentation(self):
         """
         Translates indent params to actual indents
         """
         temp = self.result.split("\n")
-        space = self.class_format.get("indent")
-        indent_content = self.class_format.get("indent_content")
+        space = self.top_format.get("indent")
+        indent_content = self.top_format.get("indent_content")
         if indent_content:
             content = temp[1:-1]
             content = [indent_content + docline for docline in temp][1:-1]
             temp[1:-1] = content
-        self.result = "\n".join([self.indent + docline for docline in temp])
+        self.result = "\n".join([space + docline for docline in temp])
 
     def confirm(self, polished):
         """
@@ -94,13 +99,21 @@ class ClassFormatter:
         str polished: complete polished string before popping up
         """
         polished = add_start_end(polished)
+        top_split = self.plain.split("\n")
+        if self.config.get("within_scope"):
+            pos = 1
+            top_split.insert(pos, polished)
+        else:
+            top_split.insert(0, polished)
+
         try:
+            result = "\n".join(top_split)
             message = click.edit(
                 "## CONFIRM: MODIFY DOCSTRING BETWEEN START AND END LINES ONLY\n\n"
-                + polished
+                + result
             )
             message = "\n".join(message.split("\n")[2:])
-        except: 
+        except:
             print("Quitting the program in the editor terminates the process. Thanks")
             sys.exit()
 
@@ -117,7 +130,7 @@ class ClassFormatter:
             if stripped == "## START":
                 start = True
 
-        self.result = "\n".join(final)+"\n"
+        self.result = "\n".join(final)
 
     def polish(self):
         """
@@ -129,5 +142,3 @@ class ClassFormatter:
             self.result = polished
         else:
             self.confirm(polished)
-
-
