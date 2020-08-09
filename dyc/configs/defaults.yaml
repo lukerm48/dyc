@@ -41,4 +41,19 @@ formats:
       parameter_split: ','
       regex: false
     class:
-      start_indicator: 'class'
+      class_indicator: 'class'
+      class_end_name: '('
+      class_end: ':'
+      regex: false
+      doc_open: '"""'
+      doc_close: '"""'
+      indent: '4 spaces'
+      indent_content: true
+      break_after_open: false
+      break_after_docstring: false
+      break_before_close: false
+      words_per_line: 10
+      before_class: true
+
+
+

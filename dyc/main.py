@@ -8,8 +8,8 @@ is constructed here. It performs all the readings
 import click
 from .utils import get_extension
 from .methods import MethodBuilder
+from .classes.ClassBuilder import ClassBuilder
 from .base import Processor
-
 
 class DYC(Processor):
     def __init__(self, config, details=None, placeholders=False):
@@ -33,7 +33,7 @@ class DYC(Processor):
                 change = list(filter(lambda x: x.get("path") == filename, changes))[0]
             except TypeError as e:
                 click.echo(
-                    click.style("Error %r: USING default settings" % e, fg="red")
+                    click.style("Error %r: USING default settings for methods" % e, fg="red")
                 )
                 return
             except IndexError:
@@ -51,12 +51,34 @@ class DYC(Processor):
             builder.apply()
             builder.clear(filename)
 
-    def process_classes(self):
+    def process_classes(self, diff_only=False, changes=[]):
         """
-        Main method that documents Classes in a file. Still TODO
+        Main method that documents Classes in a file.
         """
-        # self.classes = ClassesBuilder()
-        pass
+        print("\nProcessing Classes\n\r")
+        for filename in self.file_list:
+
+            try:
+                change = list(filter(lambda x: x.get("path") == filename, changes))[0]
+            except TypeError as e:
+                click.echo(
+                    click.style("Error %r: USING default settings for classes" % e, fg="red")
+                )
+                return
+            except IndexError:
+                change = None
+
+            extension = get_extension(filename)
+            fmt = self.formats.get(extension)
+            class_cnf = fmt.get("class", {})
+            builder = ClassBuilder(
+                filename, class_cnf, placeholders=self.placeholders
+            )
+            builder.initialize(change=change)
+            builder.prompts()
+            builder.apply()
+            builder.clear(filename)
+
 
     def process_top(self):
         """

@@ -13,8 +13,10 @@ from .utils import (
     get_leading_whitespace,
     BlankFormatter,
     get_indent,
+    convert_indent,
     add_start_end,
     is_one_line_method,
+    count_lines,
 )
 from .base import Builder
 import os
@@ -86,19 +88,20 @@ class MethodBuilder(Builder):
                     #get match from file
                     line = file_lines[start:end+1]
                     #index to start counting at 
-                    lineno = self._count_lines(file_lines,start)
+                    lineno = count_lines(file_lines,start)
                     found = self._is_line_part_of_patches(lineno, line, patches)
 
                 if not self.details.get(self.filename):
                     self.details[self.filename] = dict()
 
                 if found:
-                    all_string = file_lines[start:end] # entire match
+                    all_string = file_lines[start:end+1] # entire match
                     result = MethodInterface(
                             plain=all_string,
                             name=method_name,
                             start=start,
                             end=end,
+                            indent=get_indent(file_lines,start-1),
                             filename=self.filename,
                             arguments=self.extract_arguments(parameter_list),
                             config=self.config,
@@ -166,10 +169,21 @@ class MethodBuilder(Builder):
                 file_text = file_handle.read()
                 file_handle.seek(0)
                 if self.config.get("before_method"):
-                    file_handle.write(file_text[0:method_interface.start] + method_interface.result + file_text[method_interface.start:])
+                    #write before new line
+                    new_line_index = file_text[0:method_interface.start].rfind("\n")
+                    #are we at top of file?
+                    if new_line_index == -1:
+                        new_line_index = method_interface.start-1
+                    file_handle.write(file_text[0:new_line_index+1] + method_interface.result + file_text[new_line_index+1:])
                 else:
-                    file_handle.write(file_text[0:method_interface.end+1] + method_interface.result + file_text[method_interface.end+1:])
-
+                    #write after new line
+                    new_line_index = file_text[method_interface.end:].find("\n")
+                    add_line = ""
+                    #are we at bottom of file?
+                    if new_line_index == -1:
+                        add_line = "\n"
+                        new_line_index = 0
+                    file_handle.write(file_text[0:method_interface.end+new_line_index+1] + add_line + method_interface.result + file_text[method_interface.end+new_line_index+1:])
     def _method_interface_gen(self,reverse=False):
         """
         A generator that yields the method interfaces
@@ -184,18 +198,6 @@ class MethodBuilder(Builder):
             else:
                 for method_interface in func_pack.values():
                     yield method_interface
-
-
-    def _count_lines(self, lines, start_index):
-        count = -1
-        line_iter = iter(ange(start_index+1))
-        for i in line_iter:
-            if lines[i] == "\n" or lines[i] == "\r":
-                count = count + 1
-                if lines[i:i+2] == "\r\n":
-                    next(line_iter,None)
-
-        return count
 
 class MethodFormatter:
 
@@ -235,11 +237,11 @@ class MethodFormatter:
         """
         method_format = copy.deepcopy(self.config)
         method_format["indent"] = (
-            get_indent(method_format["indent"]) if method_format["indent"] else "    "
+             convert_indent(method_format["indent"]) if method_format["indent"] else "    "
         )
         method_format["indent_content"] = (
-            get_indent(method_format["indent"])
-            if get_indent(method_format["indent_content"])
+            convert_indent(method_format["indent"])
+            if method_format["indent_content"]
             else ""
         )
         method_format["break_after_open"] = (
@@ -314,7 +316,7 @@ class MethodFormatter:
             content = temp[1:-1]
             content = [indent_content + docline for docline in temp][1:-1]
             temp[1:-1] = content
-        self.result = "\n".join([space + docline for docline in temp])
+        self.result = "\n".join([self.indent + docline for docline in temp])
 
     def confirm(self, polished):
         """
@@ -369,6 +371,7 @@ class MethodInterface(MethodFormatter):
         name,
         start,
         end,
+        indent,
         filename,
         arguments,
         config,
@@ -379,6 +382,7 @@ class MethodInterface(MethodFormatter):
         self.name = name
         self.start = start
         self.end = end
+        self.indent = indent
         self.filename = filename
         self.arguments = arguments
         self.method_docstring = ""
