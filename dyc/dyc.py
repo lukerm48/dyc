@@ -70,4 +70,3 @@ def diff(config, watch):
             dyc.prepare(files=paths)
             dyc.process_classes(diff_only=True, changes=uncommitted)
             dyc.process_methods(diff_only=True, changes=uncommitted)
-            

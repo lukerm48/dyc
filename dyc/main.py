@@ -8,7 +8,8 @@ is constructed here. It performs all the readings
 import click
 from .utils import get_extension
 from .methods import MethodBuilder
-from .classes.ClassBuilder import ClassBuilder
+from .classes import ClassBuilder
+from .top import TopBuilder
 from .base import Processor
 
 class DYC(Processor):
@@ -80,10 +81,30 @@ class DYC(Processor):
             builder.clear(filename)
 
 
-    def process_top(self):
+    def process_top(self, diff_only=False, changes=[]):
         """
         Main method that documents a top of a file. Still
-        TODO
         """
-        # self.tops = TopBuilder()
-        pass
+        print("\nProcessing Classes\n\r")
+        for filename in self.file_list:
+
+            try:
+                change = list(filter(lambda x: x.get("path") == filename, changes))[0]
+            except TypeError as e:
+                click.echo(
+                    click.style("Error %r: USING default settings for top" % e, fg="red")
+                )
+                return
+            except IndexError:
+                change = None
+
+            extension = get_extension(filename)
+            fmt = self.formats.get(extension)
+            class_cnf = fmt.get("class", {})
+            builder = TopBuilder(
+                filename, class_cnf, placeholders=self.placeholders
+            )
+            builder.initialize(change=change)
+            builder.prompts()
+            builder.apply()
+            builder.clear(filename)
