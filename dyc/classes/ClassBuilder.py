@@ -8,13 +8,12 @@ from ..utils import (
 )
 import click
 import os
-import sys
+
 
 class ClassBuilder(Builder):
     already_printed_filepaths = []  # list of already printed files
 
     def initialize(self, change=None):
-        result = dict()
 
         patches = []
         if change:

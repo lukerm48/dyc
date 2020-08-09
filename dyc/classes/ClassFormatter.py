@@ -7,6 +7,7 @@ import copy
 import sys
 import click
 
+
 class ClassFormatter:
     formatted_string = "{doc_open}\n{break_after_open}{class_docstring}{break_after_docstring}{empty_line}{break_before_close}\n{doc_close}"
     fmt = BlankFormatter()

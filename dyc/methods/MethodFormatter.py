@@ -124,10 +124,8 @@ class MethodFormatter:
         Translates indent params to actual indents
         """
         temp = self.result.split("\n")
-        space = self.method_format.get("indent")
         indent_content = self.method_format.get("indent_content")
         if indent_content:
-            content = temp[1:-1]
             content = [indent_content + docline for docline in temp][1:-1]
             temp[1:-1] = content
         self.result = "\n".join([self.indent + docline for docline in temp])

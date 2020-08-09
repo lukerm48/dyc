@@ -101,13 +101,7 @@ class TopFormatter:
         polished = add_start_end(polished)
         top_split = self.plain.split("\n")
         if self.config.get("within_scope"):
-            # Check if method comes in an unusual format
-            # keywords = self.config.get("keywords")
-            # firstLine = top_split[0]
             pos = 1
-            # while not is_one_line_method(firstLine, keywords):
-            #     firstLine += top_split[pos]
-            #     pos += 1
             top_split.insert(pos, polished)
         else:
             top_split.insert(0, polished)

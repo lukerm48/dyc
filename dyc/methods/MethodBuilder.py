@@ -19,7 +19,6 @@ class MethodBuilder(Builder):
     already_printed_filepaths = []  # list of already printed files
 
     def initialize(self, change=None):
-        result = dict()
 
         patches = []
         if change:

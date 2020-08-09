@@ -32,12 +32,6 @@ class TopBuilder(Builder):
             start_line
         )  # Where function started
         top_string = start_line
-        # if not is_one_line_method(start_line, self.config.get("keywords")):
-        #     top_string = line
-        #     linesBackwards = top_string.count("\n") - 1
-        #     start_leading_space = get_leading_whitespace(
-        #         linecache.getline(filename, start - linesBackwards)
-        #     )
         line_within_scope = True
         lineno = start + 1
         line = linecache.getline(filename, lineno)
