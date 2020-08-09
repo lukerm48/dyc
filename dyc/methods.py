@@ -13,8 +13,10 @@ from .utils import (
     get_leading_whitespace,
     BlankFormatter,
     get_indent,
+    convert_indent,
     add_start_end,
     is_one_line_method,
+    count_lines,
 )
 from .base import Builder
 import os
@@ -23,60 +25,92 @@ import os
 class MethodBuilder(Builder):
     already_printed_filepaths = []  # list of already printed files
 
-    def extract_and_set_information(self, filename, start, line, length):
-        """
-        This is a main abstract method tin the builder base
-        to add result into details. Used in Method Builder to
-        pull the candidates that are subject to docstrings
-        Parameters
-        ----------
-        str filename: The file's name
-        int start: Starting line
-        str line: Full line text
-        int length: The length of the extracted data
-        """
-        start_line = linecache.getline(filename, start)
-        initial_line = line
-        start_leading_space = get_leading_whitespace(
-            start_line
-        )  # Where function started
-        method_string = start_line
-        if not is_one_line_method(start_line, self.config.get("keywords")):
-            method_string = line
-            linesBackwards = method_string.count("\n") - 1
-            start_leading_space = get_leading_whitespace(
-                linecache.getline(filename, start - linesBackwards)
-            )
-        line_within_scope = True
-        lineno = start + 1
-        line = linecache.getline(filename, lineno)
-        end_of_file = False
-        end = None
-        while line_within_scope and not end_of_file:
-            current_leading_space = get_leading_whitespace(line)
-            if len(current_leading_space) <= len(start_leading_space) and line.strip():
-                end = lineno - 1
-                break
-            method_string += line
-            lineno = lineno + 1
-            line = linecache.getline(filename, int(lineno))
-            end_of_file = True if lineno > length else False
+    def initialize(self, change=None):
+        result = dict()
 
-        if not end:
-            end = length
+        patches = []
+        if change:
+            patches = change.get("additions")
 
-        linecache.clearcache()
-        return MethodInterface(
-            plain=method_string,
-            name=self._get_name(initial_line),
-            start=start,
-            end=end,
-            filename=filename,
-            arguments=self.extract_arguments(initial_line.strip("\n")),
-            config=self.config,
-            leading_space=get_leading_whitespace(initial_line),
-            placeholders=self.placeholders,
-        )
+        with open(self.filename, 'r') as file:
+            file_lines = file.read()
+            method_support_regex = self.config.get("regex")
+            argument_support_regex = self.config.get("arguments").get("regex")
+            method_indicator = self.config.get("method_indicator")
+            start_parameter = self.config.get("arguments").get("start_parameter")
+            end_parameter = self.config.get("arguments").get("end_parameter")
+            parameter_split = self.config.get("arguments").get("parameter_split")
+            method_end = self.config.get("method_end")
+            doc_open = self.config.get("doc_open")
+            doc_close = self.config.get("doc_close")
+            before_method = self.config.get("before_method")
+            if not method_support_regex:
+                method_indicator = re.escape(method_indicator)
+                #doc_open = re.escape(doc_open)
+                #doc_close = re.escape(doc_close)
+                method_end = re.escape(method_end)
+            if not argument_support_regex:
+                start_parameter = re.escape(start_parameter)
+                end_parameter = re.escape(end_parameter)
+                parameter_split = re.escape(parameter_split)
+            pattern = "("+method_indicator+")"+"\s+"+"(.*?)"+"\s*"+start_parameter+"(.*?)"+end_parameter+"\s*"+"("+method_end+")"
+            if before_method:
+                pattern = "(" + doc_close + ")?\s*" + pattern
+            else:
+                pattern = pattern + "\s*(" + doc_open + ")?"
+            regex = re.compile(pattern,flags=re.DOTALL)
+            match_iter = regex.finditer(file_lines)
+            match_list = []
+            #only add methods that don't have documentatino before or after them
+            for i in match_iter:
+                if (before_method and i.groups()[0] is None) or (not before_method and i.groups()[len(i.groups())-1] is None):
+                    match_list.append(i)
+            #NOTE: handling of self.config.get('comments') was taken out. Doesn't seem real useful
+            found = (len(match_list) > 0)
+            for i in match_list:
+                start = 0
+                end = 0
+                parameter_list = ""
+                method_name = ""
+
+                if before_method:
+                    method_name = i.groups()[2]
+                    parameter_list = i.groups()[3].split(parameter_split)
+                    start = i.start(2)
+                    end = i.end(5)
+                else:
+                    method_name = i.groups()[1]
+                    parameter_list = i.groups()[2].split(parameter_split)
+                    start = i.start(1)
+                    end = i.end(4)
+
+                if change and found:
+                    #get match from file
+                    line = file_lines[start:end+1]
+                    #index to start counting at 
+                    lineno = count_lines(file_lines,start)
+                    found = self._is_line_part_of_patches(lineno, line, patches)
+
+                if not self.details.get(self.filename):
+                    self.details[self.filename] = dict()
+
+                if found:
+                    all_string = file_lines[start:end+1] # entire match
+                    result = MethodInterface(
+                            plain=all_string,
+                            name=method_name,
+                            start=start,
+                            end=end,
+                            indent=get_indent(file_lines,start-1),
+                            filename=self.filename,
+                            arguments=self.extract_arguments(parameter_list),
+                            config=self.config,
+                            leading_space=get_leading_whitespace(all_string),
+                            placeholders=self.placeholders,
+                        )
+
+                    if self.validate(result):
+                        self.details[self.filename][result.name] = result
 
     def validate(self, result):
         """
@@ -89,12 +123,9 @@ class MethodBuilder(Builder):
         if not result:
             return False
         name = result.name
-        if name not in self.config.get(
-            "ignore", []
-        ) and not self.is_first_line_documented(result):
-            if (
-                self.filename not in self.already_printed_filepaths
-            ):  # Print file of method to document
+        if name not in self.config.get("ignore", []):
+            if self.filename not in self.already_printed_filepaths:  
+                # Print file of method to document
                 click.echo(
                     "\n\nIn file {} :\n".format(
                         click.style(
@@ -103,49 +134,19 @@ class MethodBuilder(Builder):
                     )
                 )
                 self.already_printed_filepaths.append(self.filename)
-            confirmed = (
-                True
-                if self.placeholders
-                else click.confirm(
-                    "Do you want to document method {}?".format(
-                        click.style(name, fg="green")
-                    )
-                )
-            )
-            if confirmed:
-                return True
-
+            return True
         return False
 
-    def extract_arguments(self, line):
+    def extract_arguments(self, args_list):
         """
         Public extract argument method that calls ArgumentDetails
         class to extract args
         Parameters
         ----------
         """
-        args = ArgumentDetails(line, self.config.get("arguments", {}))
+        args = ArgumentDetails(args_list, self.config.get("arguments", {}))
         args.extract()
         return args.sanitize()
-
-    def is_first_line_documented(self, result):
-        """
-        A boolean function that determines weather the first line has
-        a docstring or not
-        Parameters
-        ----------
-        MethodInterface result: Is a method interface class that could be
-        subject to be taking a docstring
-        str line: The line of the found method
-        """
-        returned = False
-        for x in range(result.start, result.end):
-            line = linecache.getline(result.filename, x)
-            if self.config.get("open") in line:
-                returned = True
-                break
-        linecache.clearcache()
-        return returned
 
     def prompts(self):
         """
@@ -160,36 +161,30 @@ class MethodBuilder(Builder):
         chosen methods to document and applying the changes to the
         files as confirmed
         """
-        for method_interface in self._method_interface_gen():
+        #reverse list to edit file from bottom to top
+        for method_interface in self._method_interface_gen(reverse=True):
             if not method_interface:
                 continue
-            fileInput = fileinput.input(method_interface.filename, inplace=True)
-
-            for line in fileInput:
-                tmpLine = line
-                if self._is_method(line) and ":" not in line:
-                    openedP = line.count("(")
-                    closedP = line.count(")")
-                    pos = 1
-                    if openedP == closedP:
-                        continue
-                    else:
-                        while openedP != closedP:
-                            tmpLine += fileInput.readline()
-                            openedP = tmpLine.count("(")
-                            closedP = tmpLine.count(")")
-                            pos += 1
-                        line = tmpLine
-
-                if self._get_name(line) == method_interface.name:
-                    if self.config.get("within_scope"):
-                        sys.stdout.write(line + method_interface.result + "\n")
-                    else:
-                        sys.stdout.write(method_interface.result + "\n" + line)
+            with open(method_interface.filename, 'r+') as file_handle:
+                file_text = file_handle.read()
+                file_handle.seek(0)
+                if self.config.get("before_method"):
+                    #write before new line
+                    new_line_index = file_text[0:method_interface.start].rfind("\n")
+                    #are we at top of file?
+                    if new_line_index == -1:
+                        new_line_index = method_interface.start-1
+                    file_handle.write(file_text[0:new_line_index+1] + method_interface.result + file_text[new_line_index+1:])
                 else:
-                    sys.stdout.write(line)
-
-    def _method_interface_gen(self):
+                    #write after new line
+                    new_line_index = file_text[method_interface.end:].find("\n")
+                    add_line = ""
+                    #are we at bottom of file?
+                    if new_line_index == -1:
+                        add_line = "\n"
+                        new_line_index = 0
+                    file_handle.write(file_text[0:method_interface.end+new_line_index+1] + add_line + method_interface.result + file_text[method_interface.end+new_line_index+1:])
+    def _method_interface_gen(self,reverse=False):
         """
         A generator that yields the method interfaces
         """
@@ -197,42 +192,16 @@ class MethodBuilder(Builder):
             yield None
 
         for filename, func_pack in self.details.items():
-            for method_interface in func_pack.values():
-                yield method_interface
-
-    def _get_name(self, line):
-        """
-        Grabs the name of the method from the given line
-        Parameters
-        ----------
-        str line: String line that has the method's name
-        """
-        for keyword in self.config.get("keywords", []):
-            clear_defs = re.sub("{} ".format(keyword), "", line.strip())
-            name = re.sub(r"\([^)]*\)\:", "", clear_defs).strip()
-            if re.search(r"\(([\s\S]*)\)", name):
-                try:
-                    name = re.match(r"^[^\(]+", name).group()
-                except:
-                    pass
-            if name:
-                return name
-
-    def _is_method(self, line):
-        """
-        A predicate method that checks if a line is a
-        method
-
-        Parameters
-        ----------
-        str line: Text string of a line in a file
-        """
-        return line.strip().split(" ")[0] in self.config.get("keywords")
-
+            if(reverse):
+                for method_interface in reversed(func_pack.values()):
+                    yield method_interface
+            else:
+                for method_interface in func_pack.values():
+                    yield method_interface
 
 class MethodFormatter:
 
-    formatted_string = "{open}{break_after_open}{method_docstring}{break_after_docstring}{empty_line}{argument_format}{break_before_close}{close}"
+    formatted_string = "{doc_open}\n{break_after_open}{method_docstring}{break_after_docstring}{empty_line}{argument_format}{break_before_close}\n{doc_close}"
     fmt = BlankFormatter()
 
     def format(self):
@@ -268,11 +237,11 @@ class MethodFormatter:
         """
         method_format = copy.deepcopy(self.config)
         method_format["indent"] = (
-            get_indent(method_format["indent"]) if method_format["indent"] else "    "
+             convert_indent(method_format["indent"]) if method_format["indent"] else "    "
         )
         method_format["indent_content"] = (
-            get_indent(method_format["indent"])
-            if get_indent(method_format["indent_content"])
+            convert_indent(method_format["indent"])
+            if method_format["indent_content"]
             else ""
         )
         method_format["break_after_open"] = (
@@ -304,7 +273,7 @@ class MethodFormatter:
         """
         Main function for wrapping up argument docstrings
         """
-        if not self.arguments:  # if len(self.arguments) == 0
+        if not self.arguments:
             self.method_format["argument_format"] = ""
             self.method_format["break_before_close"] = ""
             self.method_format["empty_line"] = ""
@@ -347,7 +316,7 @@ class MethodFormatter:
             content = temp[1:-1]
             content = [indent_content + docline for docline in temp][1:-1]
             temp[1:-1] = content
-        self.result = "\n".join([space + docline for docline in temp])
+        self.result = "\n".join([self.indent + docline for docline in temp])
 
     def confirm(self, polished):
         """
@@ -358,24 +327,10 @@ class MethodFormatter:
         str polished: complete polished string before popping up
         """
         polished = add_start_end(polished)
-        method_split = self.plain.split("\n")
-        if self.config.get("within_scope"):
-            # Check if method comes in an unusual format
-            keywords = self.config.get("keywords")
-            firstLine = method_split[0]
-            pos = 1
-            while not is_one_line_method(firstLine, keywords):
-                firstLine += method_split[pos]
-                pos += 1
-            method_split.insert(pos, polished)
-        else:
-            method_split.insert(0, polished)
-
         try:
-            result = "\n".join(method_split)
             message = click.edit(
                 "## CONFIRM: MODIFY DOCSTRING BETWEEN START AND END LINES ONLY\n\n"
-                + result
+                + polished
             )
             message = "\n".join(message.split("\n")[2:])
         except:
@@ -395,7 +350,7 @@ class MethodFormatter:
             if stripped == "## START":
                 start = True
 
-        self.result = "\n".join(final)
+        self.result = "\n".join(final)+"\n"
 
     def polish(self):
         """
@@ -416,6 +371,7 @@ class MethodInterface(MethodFormatter):
         name,
         start,
         end,
+        indent,
         filename,
         arguments,
         config,
@@ -426,6 +382,7 @@ class MethodInterface(MethodFormatter):
         self.name = name
         self.start = start
         self.end = end
+        self.indent = indent
         self.filename = filename
         self.arguments = arguments
         self.method_docstring = ""
@@ -488,8 +445,8 @@ class MethodInterface(MethodFormatter):
 
 
 class ArgumentDetails(object):
-    def __init__(self, line, config):
-        self.line = line
+    def __init__(self, args_list, config):
+        self.args_list = args_list
         self.config = config
         self.args = []
 
@@ -499,14 +456,14 @@ class ArgumentDetails(object):
         """
         try:
             ignore = self.config.get("ignore")
-            args = re.search(r"\(([\s\S]*)\)", self.line).group(1).split(",")
             self.args = filter(
                 lambda x: x not in ignore,
                 filter(
                     None,
-                    [arg.replace("\n", "").replace("\t", "").strip() for arg in args],
-                ),
+                    self.args_list
+                )
             )
+            self.args = list(self.args)
         except:
             pass
 
@@ -514,4 +471,7 @@ class ArgumentDetails(object):
         """
         Sanitizes arguments to validate all arguments are correct
         """
-        return map(lambda arg: re.findall(r"[a-zA-Z0-9_]+", arg)[0], self.args)
+        if( len(self.args) > 0):
+            return list(map(lambda arg: re.findall(r"[a-zA-Z0-9_]+", arg)[0], self.args))
+        else:
+            return []
