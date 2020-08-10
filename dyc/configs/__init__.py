@@ -22,7 +22,7 @@ class Config(object):
         """
         Overrides the current default config's values
         """
-        for key, value in self.custom.iteritems():
+        for key, value in self.custom.items():
             if not self._is_mutated(value):
                 self.plain[key] = value
 
@@ -36,7 +36,7 @@ class Config(object):
             extension = value.get('extension')
             cnf_index = self._get_custom_extension_index(extension)
             try:
-                for nested_key, nested_obj in value.iteritems():
+                for nested_key, nested_obj in value.items():
                     try:
                         self.plain.get('formats')[cnf_index][nested_key].update(
                             **nested_obj

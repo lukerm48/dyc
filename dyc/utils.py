@@ -20,7 +20,7 @@ def get_leading_whitespace(s):
     """
     accumulator = []
     for c in s:
-        if c in " \t\v\f\r\n":
+        if c in " \t\v\f": #not including \r\n
             accumulator.append(c)
         else:
             break
@@ -56,7 +56,7 @@ class BlankFormatter(string.Formatter):
             return string.Formatter.get_value(key, args, kwds)
 
 
-def get_indent(space):
+def convert_indent(space):
     """
     Translator of the indent config param to real spaces or
     tabs
@@ -68,6 +68,14 @@ def get_indent(space):
     if value is None:
         return "    "
     return value
+
+def get_indent(lines,start_index):
+    running_space = "";
+    for i in range(start_index,-1,-1):
+        if(lines[i] == "\n"):
+            break
+        running_space += lines[i]
+    return running_space
 
 
 def get_extension(filename):
@@ -113,7 +121,6 @@ def add_start_end(string):
     leading_space = get_leading_whitespace(string)
     start = "{}## START\n".format(leading_space)
     end = "\n{}## END".format(leading_space)
-    string.split("\n")
     result = start + string + end
     return result
 
@@ -187,3 +194,23 @@ def is_comment(line, comments):
     list comments: A list of potential comment keywords
     """
     return line.lstrip(' ')[0] in comments
+def count_lines(self, lines, start_index):
+    """
+    A utility method to number of line between an beginning of string and index
+
+    Parameters
+    ----------
+    str lines: The line string 
+    int start_index: index to end counting at
+    """
+
+    count = -1
+    line_iter = iter(range(start_index+1))
+    for i in line_iter:
+        if lines[i] == "\n" or lines[i] == "\r":
+            count = count + 1
+            if lines[i:i+2] == "\r\n":
+                next(line_iter,None)
+    return count
+
+

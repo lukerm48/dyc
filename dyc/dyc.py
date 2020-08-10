@@ -48,6 +48,7 @@ def start(config, files, placeholders):
     dyc = DYC(config.plain, placeholders=placeholders)
     dyc.prepare()
     dyc.file_prompt()
+    dyc.process_classes()
     dyc.process_methods()
 
 
@@ -69,4 +70,6 @@ def diff(config, watch):
         if len(uncommitted):
             dyc = DYC(config.plain)
             dyc.prepare(files=paths)
+            dyc.process_top(diff_only=True, changes=uncommitted)
+            dyc.process_classes(diff_only=True, changes=uncommitted)
             dyc.process_methods(diff_only=True, changes=uncommitted)

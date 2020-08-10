@@ -13,60 +13,6 @@ class Builder(object):
 
     details = dict()
 
-    def initialize(self, change=None):
-        """
-        The Builder's main method. It stores all the changes that needs to be made
-        in `self.details` for a file. Which would then be used to add Docstrings to.
-        """
-        result = dict()
-
-        patches = []
-        if change:
-            patches = change.get("additions")
-
-        fileLines = list(fileinput.input(self.filename))
-        i = 0
-
-        for line in fileinput.input(self.filename):
-            filename = fileinput.filename()
-            lineno = fileinput.lineno()
-            keywords = self.config.get("keywords")
-            foundList = [
-                word.lstrip() for word in line.split(" ") if word.lstrip() in keywords
-            ]
-            found = len(foundList) > 0 and not is_comment(
-                line, self.config.get('comments')
-            )
-            # Checking an unusual format in method declaration
-            if foundList:
-                openP = line.count("(")
-                closeP = line.count(")")
-                if openP == closeP:
-                    pass
-                else:
-                    pos = i
-                    while openP != closeP:
-                        pos += 1
-                        line += fileLines[pos]
-                        openP = line.count("(")
-                        closeP = line.count(")")
-                    lineno = pos + 1
-            i = i + 1
-
-            if change and found:
-                found = self._is_line_part_of_patches(lineno, line, patches)
-
-            if not self.details.get(filename):
-                self.details[filename] = dict()
-
-            if found:
-                length = get_file_lines(filename)
-                result = self.extract_and_set_information(
-                    filename, lineno, line, length
-                )
-                if self.validate(result):
-                    self.details[filename][result.name] = result
-
     def _is_line_part_of_patches(self, lineno, line, patches):
         """
         Checks if a line is part of the patch
@@ -81,16 +27,8 @@ class Builder(object):
             start, end = change.get("hunk")
             if start <= lineno <= end:
                 patch = change.get("patch")
-                found = filter(lambda l: line.replace("\n", "") == l, patch.split("\n"))
+                found = line in patch
                 if found:
-                    result = True
-                    break
-
-                # Try to catch unusual declared methods
-                broken_lines = line.split("\n")
-                if len(broken_lines) and not is_one_line_method(
-                    broken_lines[0], self.config.get("keywords")
-                ):
                     result = True
                     break
         return result
