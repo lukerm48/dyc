@@ -71,7 +71,6 @@ class FilesDirector:
         self.set_files_to_read(files=files)
         self.apply_includes()
         self.apply_excludes()
-        self.files_to_document = []
 
     def apply_includes(self):
         """
