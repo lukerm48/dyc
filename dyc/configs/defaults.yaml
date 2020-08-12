@@ -40,6 +40,18 @@ formats:
       end_parameter: ')'
       parameter_split: ','
       regex: false
+    returns:
+      return_title: 'Return Values'
+      return_underline: true
+      return_add_type: true
+      return_inline: false
+      return_prefix: ''
+      return_ignore:
+      return_start_parameter: 'return'
+      return_end_parameter: 
+      return_parameter_split: ','
+      return_regex: false
+     
     class:
       class_indicator: 'class'
       class_end_name: '('
