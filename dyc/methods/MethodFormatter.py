@@ -15,7 +15,9 @@ from ..utils import (
 
 class MethodFormatter:
 
+    #formatted_string = "{doc_open}\n{break_after_open}{method_docstring}{break_after_docstring}{empty_line}{argument_format}{return_format}{break_before_close}\n{doc_close}"
     formatted_string = "{doc_open}\n{break_after_open}{method_docstring}{break_after_docstring}{empty_line}{argument_format}{break_before_close}\n{doc_close}"
+
     fmt = BlankFormatter()
 
     def format(self):
@@ -26,6 +28,7 @@ class MethodFormatter:
         self.pre()
         self.build_docstrings()
         self.build_arguments()
+        #self.build_return_value()
         self.result = self.fmt.format(self.formatted_string, **self.method_format)
         self.add_indentation()
         self.polish()
@@ -72,8 +75,11 @@ class MethodFormatter:
         argument_format = copy.deepcopy(self.config.get("arguments"))
         argument_format["inline"] = "" if argument_format["inline"] else "\n"
 
+        return_format = copy.deepcopy(self.config.get("returns"))        
+
         self.method_format = method_format
         self.argument_format = argument_format
+        self.return_format = return_format
 
     def build_docstrings(self):
         """
@@ -117,6 +123,35 @@ class MethodFormatter:
         self.argument_format["body"] = "\n".join(result)
         self.method_format["argument_format"] = self.fmt.format(
             "{title}{body}", **self.argument_format
+        )
+    def build_return_value(self):
+        """
+        Main function for wrapping up return docstrings
+        """
+        config = self.config.get("returns")
+
+        if config.get("return_ignore"):
+            self.return_format["return_format"] = ""
+            self.return_format["break_before_close"] = ""
+            self.return_format["empty_line"] = ""
+            return
+
+        formatted_returns = "{prefix} {type} {name}: {doc}"
+
+        title = self.return_format.get("return_title")
+        if title:
+            underline = "-" * len(title)
+            self.return_format["return_title"] = (
+                "{}\n{}\n".format(title, underline)
+                if config.get("return_underline")
+                else "{}\n".format(title)
+            )
+        #return_details["prefix"] = self.return_format.get("prefix")
+        result = self.fmt.format(formatted_returns, **return_details).strip()
+
+        self.return_format["body"] = result
+        self.return_format["return_format"] = self.fmt.format(
+            "{title}{body}", **self.return_format
         )
 
     def add_indentation(self):

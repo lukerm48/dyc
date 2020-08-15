@@ -3,62 +3,83 @@ File for classes that handles the file headers
 the application. Here is the the place where the actual reading,
 parsing and validation of the files happens.
 """
-import linecache
-from ..utils import (
-    get_leading_whitespace,
-)
 from ..base import Builder
 from .TopInterface import TopInterface
-
-
+import re
+import click
+import os
 class TopBuilder(Builder):
     already_printed_filepaths = []
 
-    def extract_and_set_information(self, filename, start, line, length):
+
+    def initialize(self, change=None):
+        
+        if not self.config.get("enabled"):
+            return
+        patches = []
+        if change:
+            patches = change.get("additions")
+        with open(self.filename, 'r') as file:
+            file_lines = file.read()
+            doc_open = self.config.get("doc_open")
+            regex = re.compile("^(.*?)"+"("+re.escape(doc_open)+")",flags=re.DOTALL|re.MULTILINE)
+            match_list = list(regex.finditer(file_lines))
+            top_already_doced = False
+            if len(match_list) > 0:
+                top_already_doced = match_list[0].group(1).isspace() or match_list[0].group(1) == ""
+            
+            if not self.details.get(self.filename):
+                self.details[self.filename] = dict()
+
+            if not top_already_doced:
+                result = TopInterface(
+                        filename=self.filename,
+                        config=self.config,
+                        placeholders=self.placeholders,
+                    )
+
+                if self.validate(result):
+                    self.details[self.filename] = result
+
+    def validate(self, result):
         """
-        This is a main abstract method tin the builder base
-        to add result into details. Used in Top Builder to
-        pull the candidates that are subject to docstrings
+        An abstract validator method that checks if the file is
+        still valid and gives the final decision
         Parameters
         ----------
-        str filename: The file's name
-        int start: Starting line
-        str line: Full line text
-        int length: The length of the extracted data
+        ClassInterface result: The Class Interface result
         """
-        start_line = linecache.getline(filename, start)
-        initial_line = line
-        start_leading_space = get_leading_whitespace(
-            start_line
-        )  # Where function started
-        top_string = start_line
-        line_within_scope = True
-        lineno = start + 1
-        line = linecache.getline(filename, lineno)
-        end_of_file = False
-        end = None
-        while line_within_scope and not end_of_file:
-            current_leading_space = get_leading_whitespace(line)
-            if len(current_leading_space) <= len(start_leading_space) and line.strip():
-                end = lineno - 1
-                break
-            top_string += line
-            lineno = lineno + 1
-            line = linecache.getline(filename, int(lineno))
-            end_of_file = True if lineno > length else False
+        if not result:
+            return False
+        if self.filename not in self.already_printed_filepaths:  
+            # Print file of file to document
+            click.echo(
+                "\n\nIn file {} :\n".format(
+                    click.style(
+                        os.path.join(*self.filename.split(os.sep)[-3:]), fg="red"
+                    )
+                )
+            )
+            self.already_printed_filepaths.append(self.filename)
+        return True
+ 
+    def prompts(self):
+        """
+        Abstract prompt method in builder to execute prompts over candidates
+        """
+        self.details[self.filename].prompt() if self.details[self.filename] else None
 
-        if not end:
-            end = length
+    def apply(self):
+        """
+        Over here we are looping over the result of the
+        chosen top to document and applying the changes to the
+        files as confirmed
+        """
+        if not self.details[self.filename]:
+            return
+        with open(self.filename, 'r+') as file_handle:
+            file_text = file_handle.read()
+            file_handle.seek(0)
+            file_handle.write(self.details[self.filename].result + file_text)
 
-        linecache.clearcache()
-        return TopInterface(
-            plain=top_string,
-            name=self._get_name(initial_line),
-            start=start,
-            end=end,
-            filename=filename,
-            arguments=self.extract_arguments(initial_line.strip("\n")),
-            config=self.config,
-            leading_space=get_leading_whitespace(initial_line),
-            placeholders=self.placeholders,
-        )
+ 

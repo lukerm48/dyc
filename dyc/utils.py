@@ -69,14 +69,23 @@ def convert_indent(space):
         return "    "
     return value
 
-def get_indent(lines,start_index):
+def get_indent_forward(lines,start_index):
+    running_space = ""
+    for i in range(start_index,len(lines)):
+        if(lines[i] == "\n"):
+            running_space = ""
+        elif(not lines[i].isspace()):
+            break
+        running_space += lines[i]
+    return running_space
+
+def get_indent_backward(lines,start_index):
     running_space = "";
     for i in range(start_index,-1,-1):
         if(lines[i] == "\n"):
             break
         running_space += lines[i]
     return running_space
-
 
 def get_extension(filename):
     """

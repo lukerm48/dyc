@@ -8,13 +8,13 @@ import copy
 import click
 from ..utils import (
     BlankFormatter,
-    get_indent,
+    convert_indent,
     add_start_end,
 )
 
 
 class TopFormatter:
-    formatted_string = "{open}{break_after_open}{top_docstring}{break_after_docstring}{break_before_close}{close}"
+    formatted_string = "{doc_open}{break_after_open}{top_docstring}{break_after_docstring}{break_before_close}{doc_close}"
     fmt = BlankFormatter()
 
     def format(self):
@@ -24,7 +24,7 @@ class TopFormatter:
         """
         self.pre()
         self.build_docstrings()
-        self.result = self.fmt.format(self.formatted_string, **self.method_format)
+        self.result = self.fmt.format(self.formatted_string, **self.top_format)
         self.add_indentation()
         self.polish()
 
@@ -49,11 +49,11 @@ class TopFormatter:
         """
         top_format = copy.deepcopy(self.config)
         top_format["indent"] = (
-            get_indent(top_format["indent"]) if top_format["indent"] else "    "
+            convert_indent(top_format["indent"]) if top_format["indent"] else "    "
         )
         top_format["indent_content"] = (
-            get_indent(top_format["indent"])
-            if get_indent(top_format["indent_content"])
+            convert_indent(top_format["indent"])
+            if top_format["indent_content"]
             else ""
         )
         top_format["break_after_open"] = (
@@ -69,7 +69,7 @@ class TopFormatter:
 
         self.top_format = top_format
 
-    def build_docstring(self):
+    def build_docstrings(self):
         """
         Mainly adds docstrings of the file after cleaning up text
         into reasonable chunks
@@ -88,7 +88,7 @@ class TopFormatter:
             content = temp[1:-1]
             content = [indent_content + docline for docline in temp][1:-1]
             temp[1:-1] = content
-        self.result = "\n".join([space + docline for docline in temp])
+        self.result = "\n".join([docline for docline in temp])
 
     def confirm(self, polished):
         """
@@ -99,12 +99,7 @@ class TopFormatter:
         str polished: complete polished string before popping up
         """
         polished = add_start_end(polished)
-        top_split = self.plain.split("\n")
-        if self.config.get("within_scope"):
-            pos = 1
-            top_split.insert(pos, polished)
-        else:
-            top_split.insert(0, polished)
+        top_split = polished.split("\n")
 
         try:
             result = "\n".join(top_split)
@@ -130,14 +125,14 @@ class TopFormatter:
             if stripped == "## START":
                 start = True
 
-        self.result = "\n".join(final)
+        self.result = "\n".join(final)+"\n"
 
     def polish(self):
         """
         Editor wrapper to confirm result
         """
         docstring = self.result.split("\n")
-        polished = "\n".join([self.leading_space + docline for docline in docstring])
+        polished = "\n".join([docline for docline in docstring])
         if self.placeholders:
             self.result = polished
         else:
