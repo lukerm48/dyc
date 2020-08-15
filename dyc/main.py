@@ -94,7 +94,7 @@ class DYC(Processor):
         """
         Main method that documents a top of a file. Still
         """
-        print("\nProcessing Classes filename " + filename + "\n\r")
+        print("\nProcessing Top of File for filename " + filename + "\n\r")
         try:
             change = list(filter(lambda x: x.get("path") == filename, changes))[0]
         except TypeError as e:
