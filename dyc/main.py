@@ -27,15 +27,7 @@ class DYC(Processor):
                self.process_top(filename)
                self.process_classes(filename)
                self.process_methods(filename)
-		
-    def file_prompt(self):
-        print("\nFile Prompt \n\r")
-        for filename in self.file_list:
-            add_file = click.confirm(
-                    "Do you want to document file {}?".format(
-                        click.style(filename, fg="green")))
-            if (add_file):
-                self.files_to_document.append(filename)                
+		         
 
     def process_methods(self, filename, diff_only=False, changes=[]):
         """
@@ -103,7 +95,7 @@ class DYC(Processor):
         """
         Main method that documents a top of a file. Still
         """
-        print("\nProcessing Classes filename " + filename + "\n\r")
+        print("\nProcessing Top of File for filename " + filename + "\n\r")
         try:
             change = list(filter(lambda x: x.get("path") == filename, changes))[0]
         except TypeError as e:
