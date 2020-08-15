@@ -24,7 +24,7 @@ class DYC(Processor):
                     "Do you want to document file {}?".format(
                         click.style(filename, fg="green")))
             if (add_file):
-               #self.process_top(filename)
+               self.process_top(filename)
                self.process_classes(filename)
                self.process_methods(filename)
 		
@@ -115,9 +115,9 @@ class DYC(Processor):
 
         extension = get_extension(filename)
         fmt = self.formats.get(extension)
-        class_cnf = fmt.get("class", {})
+        top_cnf = fmt.get("top", {})
         builder = TopBuilder(
-            filename, class_cnf, placeholders=self.placeholders
+            filename, top_cnf, placeholders=self.placeholders
         )
         builder.initialize(change=change)
         builder.prompts()

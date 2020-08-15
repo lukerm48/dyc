@@ -10,25 +10,13 @@ from .TopFormatter import TopFormatter
 class TopInterface(TopFormatter):
     def __init__(
         self,
-        plain,
-        name,
-        start,
-        end,
         filename,
-        arguments,
         config,
-        leading_space,
         placeholders,
     ):
-        self.plain = plain
-        self.name = name
-        self.start = start
-        self.end = end
         self.filename = filename
-        self.arguments = arguments
         self.top_docstring = ""
         self.config = config
-        self.leading_space = leading_space
         self.placeholders = placeholders
 
     def prompt(self):
@@ -46,7 +34,7 @@ class TopInterface(TopFormatter):
         if self.placeholders:
             self.top_docstring = "<docstring>"
         else:
-            echo_name = click.style(self.name, fg="green")
+            echo_name = click.style(self.filename, fg="green")
             self.top_docstring = click.prompt(
                 "\n({}) Top docstring ".format(echo_name)
             )

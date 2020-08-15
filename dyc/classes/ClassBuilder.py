@@ -4,7 +4,8 @@ from .ClassInterface import ClassInterface
 from ..utils import (
     get_leading_whitespace,
     count_lines,
-    get_indent,
+    get_indent_forward,
+    get_indent_backward,
 )
 import click
 import os
@@ -27,7 +28,7 @@ class ClassBuilder(Builder):
             class_end = self.config.get("class_end")
             doc_open = self.config.get("doc_open")
             doc_close = self.config.get("doc_close")
-            before_class = self.config.get("before_class")
+            within_scope = self.config.get("within_scope")
             if not class_support_regex:
                 class_indicator = re.escape(class_indicator)
                 #doc_open = re.escape(doc_open)
@@ -35,7 +36,7 @@ class ClassBuilder(Builder):
                 class_end_name = re.escape(class_end_name)
                 class_end = re.escape(class_end)
             pattern = "("+class_indicator+")"+"\s+"+"(\S*)"+"\s*("+class_end_name+"(.*?))?("+class_end+")"
-            if before_class:
+            if not within_scope:
                 pattern = "(" + doc_close + ")?\s*" + pattern
             else:
                 pattern = pattern + "\s*(" + doc_open + ")?"
@@ -44,7 +45,7 @@ class ClassBuilder(Builder):
             match_list = []
             #only add classes that don't have documentatino before or after them
             for i in match_iter:
-                if (before_class and i.groups()[0] is None) or (not before_class and i.groups()[len(i.groups())-1] is None):
+                if (not within_scope and i.groups()[0] is None) or (within_scope and i.groups()[len(i.groups())-1] is None):
                     match_list.append(i)
             #NOTE: handling of self.config.get('comments') was taken out. Doesn't seem real useful
             found = (len(match_list) > 0)
@@ -53,7 +54,7 @@ class ClassBuilder(Builder):
                 end = 0
                 class_name = ""
 
-                if before_class:
+                if not within_scope:
                     class_name = i.groups()[2]
                     start = i.start(2)
                     end = i.end(5)
@@ -78,12 +79,17 @@ class ClassBuilder(Builder):
 
                 if found:
                     all_string = file_lines[start:end+1] # entire match
+                    indent = ""
+                    if(within_scope):
+                        indent = get_indent_forward(file_lines,end+1)
+                    else:
+                        indent = get_indent_backward(file_lines,start-1)
                     result = ClassInterface(
                             plain=all_string,
                             name=class_name,
                             start=start,
                             end=end,
-                            indent=get_indent(file_lines,start-1),
+                            indent=indent,
                             filename=self.filename,
                             config=self.config,
                             leading_space=get_leading_whitespace(all_string),
@@ -138,7 +144,7 @@ class ClassBuilder(Builder):
             with open(class_interface.filename, 'r+') as file_handle:
                 file_text = file_handle.read()
                 file_handle.seek(0)
-                if self.config.get("before_class"):
+                if not self.config.get("within_scope"):
                     #write before new line
                     new_line_index = file_text[0:class_interface.start].rfind("\n")
                     #are we at top of file?

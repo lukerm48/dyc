@@ -8,7 +8,8 @@ import click
 from .MethodInterface import MethodInterface
 from ..utils import (
     get_leading_whitespace,
-    get_indent,
+    get_indent_forward,
+    get_indent_backward,
     count_lines,
 )
 from ..base import Builder
@@ -35,7 +36,7 @@ class MethodBuilder(Builder):
             method_end = self.config.get("method_end")
             doc_open = self.config.get("doc_open")
             doc_close = self.config.get("doc_close")
-            before_method = self.config.get("before_method")
+            within_scope = self.config.get("within_scope")
             if not method_support_regex:
                 method_indicator = re.escape(method_indicator)
                 #doc_open = re.escape(doc_open)
@@ -46,7 +47,7 @@ class MethodBuilder(Builder):
                 end_parameter = re.escape(end_parameter)
                 parameter_split = re.escape(parameter_split)
             pattern = "("+method_indicator+")"+"\s+"+"(.*?)"+"\s*"+start_parameter+"(.*?)"+end_parameter+"\s*"+"("+method_end+")"
-            if before_method:
+            if not within_scope:
                 pattern = "(" + doc_close + ")?\s*" + pattern
             else:
                 pattern = pattern + "\s*(" + doc_open + ")?"
@@ -55,7 +56,7 @@ class MethodBuilder(Builder):
             match_list = []
             #only add methods that don't have documentatino before or after them
             for i in match_iter:
-                if (before_method and i.groups()[0] is None) or (not before_method and i.groups()[len(i.groups())-1] is None):
+                if (not within_scope and i.groups()[0] is None) or (within_scope and i.groups()[len(i.groups())-1] is None):
                     match_list.append(i)
             #NOTE: handling of self.config.get('comments') was taken out. Doesn't seem real useful
             found = (len(match_list) > 0)
@@ -65,7 +66,7 @@ class MethodBuilder(Builder):
                 parameter_list = ""
                 method_name = ""
 
-                if before_method:
+                if not within_scope:
                     method_name = i.groups()[2]
                     parameter_list = i.groups()[3].split(parameter_split)
                     start = i.start(2)
@@ -88,12 +89,17 @@ class MethodBuilder(Builder):
 
                 if found:
                     all_string = file_lines[start:end+1] # entire match
+                    indent = ""
+                    if(within_scope):
+                        indent = get_indent_forward(file_lines,end+1)
+                    else:
+                        indent = get_indent_backward(file_lines,start-1)
                     result = MethodInterface(
                             plain=all_string,
                             name=method_name,
                             start=start,
                             end=end,
-                            indent=get_indent(file_lines,start-1),
+                            indent=indent,
                             filename=self.filename,
                             arguments=self.extract_arguments(parameter_list),
                             config=self.config,
@@ -160,7 +166,7 @@ class MethodBuilder(Builder):
             with open(method_interface.filename, 'r+') as file_handle:
                 file_text = file_handle.read()
                 file_handle.seek(0)
-                if self.config.get("before_method"):
+                if not self.config.get("within_scope"):
                     #write before new line
                     new_line_index = file_text[0:method_interface.start].rfind("\n")
                     #are we at top of file?
