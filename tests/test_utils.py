@@ -1,8 +1,7 @@
 from dyc.utils import (
     get_leading_whitespace,
     read_yaml,
-    get_indent_forward,
-    get_indent_backward,
+    get_indent,
     get_extension,
     is_comment,
 )
@@ -33,20 +32,20 @@ class TestReadYaml:
         assert expected == got
 
 
-class TestGetIndentForward:
-    def test_forward(self):
-        lines = []
-        lines.append( '\n')
-        lines.append('This is a Test')
-        assert get_indent_forward(lines, 0) == '\n'
+class TestGetIndent:
+    def test_tabs(self):
+        assert get_indent('tab') == '\t'
 
-class TestGetIndentBackward:
-    def test_backward(self):
-        lines = []
-        lines.append( '\n')
-        lines.append('This is a Test')
-        assert get_indent_backward(lines, 1) == 'This is a Test'
-        
+    def test_2_spaces(self):
+        assert get_indent('2 spaces') == '  '
+
+    def test_falsy_value(self):
+        assert get_indent(False) == ''
+
+    def test_default_4_spaces(self):
+        assert get_indent(None) == '    '
+
+
 class TestGetExtension:
     def test_existing_extension_valid(self):
         ext = 'file.puk'
@@ -78,51 +77,3 @@ class TestIsComment:
         """Testing invalid comments"""
         text = '# Hello World'
         assert is_comment(text, ['//']) == False
-
-class UtilsTest():
-    def __init__(self, whitespace, read_yaml, extension, comment,
-                 indent_forward, indent_backward):
-      self.test_get_leading_white_space = whitespace
-      self.test_read_yaml =  read_yaml
-      self.test_get_extension = extension
-      self.test_is_comment = comment
-      self.test_get_indent_forward = indent_forward
-      self.test_get_indent_backward = indent_backward
-
-    def test_whitespace(self):
-      self.test_get_leading_white_space.test_tabs()
-      self.test_get_leading_white_space.test_whitespace()
-
-    def test_readYaml(self):
-        self.test_read_yaml.test_should_return_none_if_not_found()
-
-    def test_extension(self):
-        self.test_get_extension.test_existing_extension_valid()
-        self.test_get_extension.test_non_existing_extension()
-        self.test_get_extension.test_wrong_extension_type()
-
-    def test_comment(self):
-        self.test_is_comment.test_valid_comments()
-        self.test_is_comment.test_invalid_comments()
-
-    def test_indent_forward(self):
-        self.test_get_indent_forward.test_forward()
-
-    def test_indent_backward(self):
-        self.test_get_indent_backward.test_backward()
-
-
-utils_test = UtilsTest(TestGetLeadingWhitespace(),
-                       TestReadYaml(),
-                       TestGetExtension(),
-                       TestIsComment(),
-                       TestGetIndentForward(),
-                        TestGetIndentBackward())
-
-utils_test.test_whitespace()
-utils_test.test_readYaml()
-utils_test.test_extension()
-utils_test.test_comment()
-utils_test.test_indent_forward()
-utils_test.test_indent_backward()
-    
