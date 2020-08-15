@@ -63,6 +63,7 @@ class DYC(Processor):
         fmt = self.formats.get(extension)
         method_cnf = fmt.get("method", {})
         method_cnf["arguments"] = fmt.get("arguments")
+        method_cnf["returns"] = fmt.get("returns")
         builder = MethodBuilder(
             filename, method_cnf, placeholders=self.placeholders
         )

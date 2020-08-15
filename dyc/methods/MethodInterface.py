@@ -30,7 +30,7 @@ class MethodInterface(MethodFormatter):
         self.arguments = arguments
         self.method_docstring = ""
         self.arg_docstring = []
-        self.ret_docstring = []
+        self.ret_docstring = dict()
         self.config = config
         self.leading_space = leading_space
         self.placeholders = placeholders
@@ -42,7 +42,7 @@ class MethodInterface(MethodFormatter):
         """
         self._prompt_docstring()
         self._prompt_args()
-        #self._prompt_return()
+        self._prompt_return()
         self.format()
 
     def _prompt_docstring(self):
@@ -91,14 +91,15 @@ class MethodInterface(MethodFormatter):
     def _prompt_return(self):
         echo_name = click.style(self.name, fg="red")
         doc_placeholder = "<return docstring>"
-        return_doc = (
+        ret_doc = (
             click.prompt("\n({}) Return docstring(hit enter to skip)".format(echo_name),default="")
             if not self.placeholders
             else doc_placeholder
         )
-        if return_doc == "":
+        if ret_doc == "":
             return
         show_ret_type = self.config.get("returns", {}).get("add_type", False)
+        ret_type = ""
         if show_ret_type:
             ret_placeholder = "<type>"
             ret_type = (
@@ -107,7 +108,6 @@ class MethodInterface(MethodFormatter):
                 else arg_placeholder
             )
 
-        self.ret_docstring = dict(type=ret_type, doc=ret_doc, name=arg)
-
+        self.ret_docstring = dict(type=ret_type, doc=ret_doc)
         return
 

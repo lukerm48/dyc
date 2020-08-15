@@ -15,8 +15,7 @@ from ..utils import (
 
 class MethodFormatter:
 
-    #formatted_string = "{doc_open}\n{break_after_open}{method_docstring}{break_after_docstring}{empty_line}{argument_format}{return_format}{break_before_close}\n{doc_close}"
-    formatted_string = "{doc_open}\n{break_after_open}{method_docstring}{break_after_docstring}{empty_line}{argument_format}{break_before_close}\n{doc_close}"
+    formatted_string = "{doc_open}\n{break_after_open}{method_docstring}{break_after_docstring}{empty_line}{argument_format}\n{return_format}{break_before_close}\n{doc_close}"
 
     fmt = BlankFormatter()
 
@@ -28,7 +27,7 @@ class MethodFormatter:
         self.pre()
         self.build_docstrings()
         self.build_arguments()
-        #self.build_return_value()
+        self.build_return_value()
         self.result = self.fmt.format(self.formatted_string, **self.method_format)
         self.add_indentation()
         self.polish()
@@ -130,27 +129,26 @@ class MethodFormatter:
         """
         config = self.config.get("returns")
 
-        if config.get("return_ignore"):
+        if not config.get("enabled") or len(self.ret_docstring) == 0:
             self.return_format["return_format"] = ""
             self.return_format["break_before_close"] = ""
             self.return_format["empty_line"] = ""
             return
 
-        formatted_returns = "{prefix} {type} {name}: {doc}"
+        formatted_returns = "{prefix} {type} : {doc}"
 
         title = self.return_format.get("return_title")
         if title:
             underline = "-" * len(title)
-            self.return_format["return_title"] = (
+            self.return_format["title"] = (
                 "{}\n{}\n".format(title, underline)
                 if config.get("return_underline")
                 else "{}\n".format(title)
             )
-        #return_details["prefix"] = self.return_format.get("prefix")
-        result = self.fmt.format(formatted_returns, **return_details).strip()
-
+        self.ret_docstring["prefix"] = self.return_format.get("prefix")
+        result = self.fmt.format(formatted_returns, **self.ret_docstring).strip()
         self.return_format["body"] = result
-        self.return_format["return_format"] = self.fmt.format(
+        self.method_format["return_format"] = self.fmt.format(
             "{title}{body}", **self.return_format
         )
 
