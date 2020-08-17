@@ -1,0 +1,3 @@
+
+class Example:
+  print("Hello")
