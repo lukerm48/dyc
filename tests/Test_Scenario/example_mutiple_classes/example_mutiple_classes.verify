@@ -1,0 +1,26 @@
+"""
+file1
+
+"""
+
+class Example:
+
+  """
+
+      class1
+
+      
+
+  """
+  print("Hello")
+
+class Example2:
+
+  """
+
+      class2
+
+      
+
+  """
+  print("Hello Again!")

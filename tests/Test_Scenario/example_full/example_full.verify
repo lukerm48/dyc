@@ -1,0 +1,128 @@
+"""
+file1
+
+"""
+
+class Example():
+
+	"""
+
+	    class1
+
+	    
+
+	"""
+
+	def helloOneArgOneReturn(name):
+
+		"""
+
+		method1
+
+		Parameters
+
+		----------
+
+		type1 name: arg1
+
+		Return Value
+
+		------------
+
+		type2 : return1
+
+		"""
+	
+		return ("Hello " + name)
+
+	def helloTwoArgsOneReturn(name1, name2):
+
+		"""
+
+		method2
+
+		Parameters
+
+		----------
+
+		type2 name1: arg2
+
+		type3 name2: arg3
+
+		Return Value
+
+		------------
+
+		type4 : return2
+
+		"""
+	
+		return ("Hello " + name)
+
+	def helloOneArgTwoReturns(name):
+
+		"""
+
+		method3
+
+		Parameters
+
+		----------
+
+		type5 name: arg4
+
+		Return Value
+
+		------------
+
+		type6 : return3
+
+		"""
+
+		return ("Hello ", name)
+
+	def helloOnlyOneReturn():
+
+		"""
+
+		method4
+
+		Return Value
+
+		------------
+
+		type7 : return4
+
+		"""
+		
+		return ("Hello")
+
+	def helloOnlyOneArg(name):
+
+		"""
+
+		method5
+
+		Parameters
+
+		----------
+
+		type8 name: arg5
+
+		
+
+		"""
+		
+		print ("Hello " + name)
+
+	def helloNoArgsOrReturn():
+
+		"""
+
+		method6
+
+		
+
+		"""
+		
+		print("Hello")

@@ -1,0 +1,15 @@
+"""
+file1
+
+"""
+
+class Example:
+
+  """
+
+      class1
+
+      
+
+  """
+  print("Hello")

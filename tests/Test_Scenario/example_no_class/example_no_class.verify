@@ -1,0 +1,67 @@
+"""
+file1
+
+"""
+
+def helloOneArgOneReturn(name):
+	"""
+	method1
+	Parameters
+	----------
+	type1 name: arg1
+	Return Value
+	------------
+	type2 : return1
+	"""
+	return ("Hello " + name)
+
+def helloTwoArgsOneReturn(name1, name2):
+	"""
+	method2
+	Parameters
+	----------
+	type3 name1: arg2
+	type4 name2: arg3
+	Return Value
+	------------
+	type5 : return2
+	"""
+	return ("Hello " + name1 + name2)
+
+def helloOneArgTwoReturns(name):
+	"""
+	method3
+	Parameters
+	----------
+	type6 name: arg4
+	Return Value
+	------------
+	type7 : return3
+	"""
+	return "Hello ", name
+
+def helloOnlyOneReturn():
+	"""
+	method4
+	Return Value
+	------------
+	type8 : return4
+	"""
+	return "Hello"
+
+def helloOnlyOneArg(name):
+	"""
+	method5
+	Parameters
+	----------
+	type9 name: arg5
+	
+	"""
+	print("Hello" + name)
+
+def helloNoArgsOrReturn():
+	"""
+	method6
+	
+	"""
+	print("Hello")
