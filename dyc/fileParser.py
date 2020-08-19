@@ -6,7 +6,7 @@ It parses all the configs to be consumed in DYC.
 """
 import copy
 import click
-from .configs import Config
+from configs import Config
 
 
 class ParsedConfig(Config):

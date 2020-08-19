@@ -1,7 +1,7 @@
-from ..base import Builder
+from base import Builder
 import re
-from .ClassInterface import ClassInterface
-from ..utils import (
+from classes.ClassInterface import ClassInterface
+from utils import (
     get_leading_whitespace,
     count_lines,
     get_indent_forward,

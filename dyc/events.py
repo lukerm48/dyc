@@ -8,8 +8,8 @@ import time
 import logging
 from watchdog.observers import Observer
 from watchdog.events import LoggingEventHandler
-from .diff import Diff
-from .main import DYC
+from diff import Diff
+from main import DYC
 
 
 class WatchEvent(LoggingEventHandler):

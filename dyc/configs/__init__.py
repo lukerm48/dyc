@@ -1,5 +1,5 @@
 import os
-from ..utils import read_yaml
+from utils import read_yaml
 
 ROOT_PATH = os.getcwd()
 DEFAULT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'defaults.yaml')

@@ -6,13 +6,13 @@ parsing and validation of the files happens.
 import re
 import click
 from .MethodInterface import MethodInterface
-from ..utils import (
+from utils import (
     get_leading_whitespace,
     get_indent_forward,
     get_indent_backward,
     count_lines,
 )
-from ..base import Builder
+from base import Builder
 import os
 
 

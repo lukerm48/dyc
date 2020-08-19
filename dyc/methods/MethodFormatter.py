@@ -6,7 +6,7 @@ parsing and validation of the files happens.
 import sys
 import copy
 import click
-from ..utils import (
+from utils import (
     BlankFormatter,
     convert_indent,
     add_start_end,

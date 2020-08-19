@@ -3,14 +3,15 @@ File for classes that handles the file headers
 the application. Here is the the place where the actual reading,
 parsing and validation of the files happens.
 """
-from ..base import Builder
-from .TopInterface import TopInterface
+from base import Builder
+from top.TopInterface import TopInterface
 import re
 import click
 import os
+
+
 class TopBuilder(Builder):
     already_printed_filepaths = []
-
 
     def initialize(self, change=None):
         

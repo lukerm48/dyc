@@ -2,7 +2,7 @@
 Base file that contains the core classes that are used in dyc.
 """
 import fileinput
-from .utils import all_files_generator, get_file_lines, is_one_line_method, is_comment
+from utils import all_files_generator, get_file_lines, is_one_line_method, is_comment
 
 
 class Builder(object):

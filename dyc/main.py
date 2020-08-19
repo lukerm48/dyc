@@ -6,28 +6,28 @@ is constructed here. It performs all the readings
 
 """
 import click
-from .utils import get_extension
-from .methods.MethodBuilder import MethodBuilder
-from .classes.ClassBuilder import ClassBuilder
-from .top.TopBuilder import TopBuilder
-from .base import Processor
+from utils import get_extension
+from methods.MethodBuilder import MethodBuilder
+from classes.ClassBuilder import ClassBuilder
+from top.TopBuilder import TopBuilder
+from base import Processor
+
 
 class DYC(Processor):
     def __init__(self, config, details=None, placeholders=False):
         self.config = config
         self.placeholders = placeholders
-        
+
     def document(self):
-       print("\nStarting Documentation \n\r")
-       for filename in self.file_list:
+        print("\nStarting Documentation \n\r")
+        for filename in self.file_list:
             add_file = click.confirm(
-                    "Do you want to document file {}?".format(
-                        click.style(filename, fg="green")))
+                "Do you want to document file {}?".format(
+                    click.style(filename, fg="green")))
             if (add_file):
-               self.process_top(filename)
-               self.process_classes(filename)
-               self.process_methods(filename)
-		         
+                self.process_top(filename)
+                self.process_classes(filename)
+                self.process_methods(filename)
 
     def process_methods(self, filename, diff_only=False, changes=[]):
         """

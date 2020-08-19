@@ -3,10 +3,10 @@ This file gets configuration from parser.ParsedConfig
 and handles all the commands from the command line.
 """
 import click
-from .parser import ParsedConfig
-from .main import DYC
-from .diff import Diff
-from .events import Watcher
+from fileParser import ParsedConfig
+from main import DYC
+from diff import Diff
+from events import Watcher
 import sys
 import time
 import logging
